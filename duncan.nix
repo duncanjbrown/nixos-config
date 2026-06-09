@@ -14,6 +14,15 @@ in
     "docker-28.5.2"
   ];
 
+  services.postgresql = {
+    enable = true;
+    authentication = pkgs.lib.mkOverride 10 ''
+#type database  DBuser  auth-method
+      local all       all     trust
+      '';
+    settings.port = 5434;
+  };
+
   virtualisation.docker.enable = true;
 
   home-manager.users.duncanbrown = { pkgs, lib, config, ... }: {
@@ -39,6 +48,9 @@ in
       gh
       base16-universal-manager
       claude-code
+      nodejs # to install LSPs
+      python3 # to install LSPs
+      unzip # to install LSPs
     ];
 
     home.homeDirectory = "/home/duncanbrown";
