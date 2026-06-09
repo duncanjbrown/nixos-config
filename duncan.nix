@@ -13,6 +13,7 @@ in
 
   home-manager.users.duncanbrown = { pkgs, lib, config, ... }: {
     home.stateVersion = "25.11";  # match your nixos version
+    nixpkgs.config.allowUnfreePredicate = _: true;
 
     home.packages = with pkgs; [
       ripgrep
@@ -32,6 +33,7 @@ in
       silver-searcher
       gh
       base16-universal-manager
+      claude-code
     ];
 
     home.homeDirectory = "/home/duncanbrown";
