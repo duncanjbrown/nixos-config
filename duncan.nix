@@ -8,6 +8,7 @@ in
     (import "${home-manager}/nixos")
   ];
 
+  programs.zsh.enable = true;
   users.users.duncanbrown.shell = pkgs.zsh;
 
   home-manager.users.duncanbrown = { pkgs, lib, config, ... }: {
