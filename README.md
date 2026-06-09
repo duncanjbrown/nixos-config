@@ -7,7 +7,9 @@
     1. `cd /etc/nixos`
     1. `ln -s /home/duncanbrown/nixos-config ./duncan`
     1. `sudo vi configuration.nix` and add `duncan.nix` alongside the other .nix includes.
+    1. also add the `docker` group
 1. `sudo nix-rebuild switch`
 1. `cd ~/.dotfiles; rcup` (not sure why this isn't working yet)
+1. `gh auth login` for GitHub
 1. Log out and log back in again
 

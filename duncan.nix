@@ -10,6 +10,11 @@ in
 
   programs.zsh.enable = true;
   users.users.duncanbrown.shell = pkgs.zsh;
+  nixpkgs.config.permittedInsecurePackages = [
+    "docker-28.5.2"
+  ];
+
+  virtualisation.docker.enable = true;
 
   home-manager.users.duncanbrown = { pkgs, lib, config, ... }: {
     home.stateVersion = "25.11";  # match your nixos version
