@@ -17,8 +17,10 @@ in
   services.postgresql = {
     enable = true;
     authentication = pkgs.lib.mkOverride 10 ''
-#type database  DBuser  auth-method
+      #type database  DBuser  auth-method
       local all       all     trust
+      host  all       all     127.0.0.1/32   trust
+      host  all       all     ::1/128        trust
       '';
     settings.port = 5434;
   };
@@ -48,6 +50,7 @@ in
       gh
       base16-universal-manager
       claude-code
+      gnumake
       nodejs # to install LSPs
       python3 # to install LSPs
       unzip # to install LSPs
