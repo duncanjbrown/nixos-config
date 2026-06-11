@@ -31,6 +31,11 @@ in
 
   virtualisation.docker.enable = true;
 
+  programs.nix-ld.enable = true;
+  programs.nix-ld.libraries = with pkgs; [
+    icu
+  ];
+
   home-manager.users.duncanbrown = { pkgs, lib, config, ... }: {
     home.stateVersion = "25.11";  # match your nixos version
     nixpkgs.config.allowUnfreePredicate = _: true;
