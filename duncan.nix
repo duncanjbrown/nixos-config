@@ -2,6 +2,10 @@
 
 let
   home-manager = builtins.fetchTarball "https://github.com/nix-community/home-manager/archive/release-25.11.tar.gz";
+  base16-shell = builtins.fetchTarball {
+    url = "https://github.com/chriskempson/base16-shell/archive/588691ba71b47e75793ed9edfcfaa058326a6f41.tar.gz";
+    sha256 = "0w8g0gyvahkm6zqlwy6lw9ac3hragwh3hvrnvvq2082hdyq4bksz";
+  };
 in
 {
   imports = [
@@ -60,6 +64,10 @@ in
 
     # Satisfy fzf.vim
     home.file.".fzf".source = "${pkgs.fzf}/share/vim-plugins/fzf";
+
+    # base16-shell: provides ~/.zsh/base16's profile_helper.sh and the active theme
+    home.file.".config/base16-shell".source = base16-shell;
+    home.file.".base16_theme".source = "${base16-shell}/scripts/base16-oceanicnext.sh";
 
     programs.zsh = {
       enable = true;
