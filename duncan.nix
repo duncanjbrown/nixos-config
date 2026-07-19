@@ -146,7 +146,12 @@ in
       if [ ! -d "$HOME/.dotfiles" ]; then
         ${pkgs.git}/bin/git clone https://github.com/duncanjbrown/dotfiles.git "$HOME/.dotfiles"
       fi
-      ${pkgs.rcm}/bin/rcup -d "$HOME/.dotfiles" -C "$HOME/.dotfiles/rcrc"
+      # rcup reads $RCRC so EXCLUDES/UNDOTTED apply even before ~/.rcrc exists.
+      # -f: replace mismatched files without prompting (default -i is interactive).
+      # PATH extras are for hooks/post-up (git clone tpm, tic terminfo, tpm install_plugins).
+      export RCRC="$HOME/.dotfiles/rcrc"
+      export PATH="${pkgs.rcm}/bin:${pkgs.git}/bin:${pkgs.ncurses}/bin:${pkgs.tmux}/bin:$PATH"
+      ${pkgs.rcm}/bin/rcup -f -d "$HOME/.dotfiles"
     '';
   };
 }
