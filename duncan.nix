@@ -12,6 +12,8 @@ in
   imports = [
     (import "${home-manager}/nixos")
   ];
+  
+  systemd.units."sys-kernel-debug.mount".enable = false;
 
   programs.neovim.package = unstable.neovim-unwrapped;
 
@@ -79,6 +81,7 @@ in
       haskell-language-server
       tree-sitter
       gcc
+      opencode
     ];
 
     home.homeDirectory = "/home/duncanbrown";
@@ -137,7 +140,7 @@ in
       if [ ! -d "$HOME/.dotfiles" ]; then
         ${pkgs.git}/bin/git clone https://github.com/duncanjbrown/dotfiles.git "$HOME/.dotfiles"
       fi
-      ${pkgs.rcm}/bin/rcup -d "$HOME/.dotfiles"
+      ${pkgs.rcm}/bin/rcup -d "$HOME/.dotfiles" -C "$HOME/.dotfiles/rcrc"
     '';
   };
 }
