@@ -12,6 +12,7 @@ in
   imports = [
     (import "${home-manager}/nixos")
   ];
+  nix.settings.experimental-features = [ "nix-command" "flakes" ];
   
   systemd.units."sys-kernel-debug.mount".enable = false;
 
@@ -63,7 +64,6 @@ in
       silver-searcher
       gh
       base16-universal-manager
-      claude-code
       gnumake
       nodejs # to install LSPs
       fnm # reads .nvmrc per-project
@@ -81,7 +81,7 @@ in
       haskell-language-server
       tree-sitter
       gcc
-      opencode
+      unstable.opencode
     ];
 
     home.homeDirectory = "/home/duncanbrown";
