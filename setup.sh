@@ -39,7 +39,18 @@ INCLUDE_LINE="./duncan/duncan.nix"
 
 if ! grep -qF "$INCLUDE_LINE" "$CONFIG_FILE" 2>/dev/null; then
   info "Adding $INCLUDE_LINE to $CONFIG_FILE..."
-  sudo sed -i "/imports = \[/a\\      $INCLUDE_LINE" "$CONFIG_FILE"
+  AWK_ERR=$(sudo awk -v line="$INCLUDE_LINE" '
+    /imports[[:space:]]*=/ { saw_imports=1 }
+    saw_imports && /\[/ { print; print "      " line; saw_imports=0; next }
+    1
+  ' "$CONFIG_FILE" > /tmp/config.nix.tmp 2>&1) || error "awk failed: $AWK_ERR"
+  if [ ! -s /tmp/config.nix.tmp ]; then
+    error "awk produced empty output, aborting."
+  fi
+  sudo mv /tmp/config.nix.tmp "$CONFIG_FILE"
+  if ! grep -qF "$INCLUDE_LINE" "$CONFIG_FILE"; then
+    error "Failed to add '$INCLUDE_LINE' to $CONFIG_FILE. The 'imports' pattern may not match. Please add it manually."
+  fi
   warn "Please verify $CONFIG_FILE looks correct (the import was added automatically)."
 else
   info "$INCLUDE_LINE already present in $CONFIG_FILE, skipping."
