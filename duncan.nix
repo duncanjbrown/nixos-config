@@ -132,8 +132,14 @@ in
 
     programs.git = {
       enable = true;
-      settings.user.name = "Duncan Brown";
-      settings.user.email = "duncan@duncanjbrown.com";
+      settings = {
+        user.name = "Duncan Brown";
+        user.email = "duncan@duncanjbrown.com";
+        credential."https://github.com".helper = [
+          ""
+          "!${pkgs.gh}/bin/gh auth git-credential"
+        ];
+      };
     };
 
     home.activation.dotfiles = lib.hm.dag.entryAfter ["writeBoundary"] ''
