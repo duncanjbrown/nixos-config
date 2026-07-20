@@ -20,6 +20,7 @@ in
 
   programs.zsh.enable = true;
   users.users.duncanbrown.shell = pkgs.zsh;
+  users.users.duncanbrown.extraGroups = [ "docker" ];
   nixpkgs.config.permittedInsecurePackages = [
     "docker-28.5.2"
   ];
