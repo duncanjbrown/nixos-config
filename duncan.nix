@@ -83,6 +83,9 @@ in
       tree-sitter
       gcc
       unstable.opencode
+      duc
+      zip
+      adr-tools
     ];
 
     home.homeDirectory = "/home/duncanbrown";
