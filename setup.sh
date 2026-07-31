@@ -24,7 +24,7 @@ if [ ! -d "$REPO_DIR" ]; then
   git clone "$REPO_URL" "$REPO_DIR"
 else
   info "Repo already exists at $REPO_DIR, pulling latest..."
-  git -C "$REPO_DIR" pull
+  git -C "$REPO_DIR" pull --ff-only
 fi
 
 if [ ! -L "$NIXOS_DIR/$SYMLINK_NAME" ] && [ ! -d "$NIXOS_DIR/$SYMLINK_NAME" ]; then
@@ -47,7 +47,12 @@ if ! grep -qF "$INCLUDE_LINE" "$CONFIG_FILE" 2>/dev/null; then
   if [ ! -s /tmp/config.nix.tmp ]; then
     error "awk produced empty output, aborting."
   fi
-  sudo mv /tmp/config.nix.tmp "$CONFIG_FILE"
+  if ! nix-instantiate --parse /tmp/config.nix.tmp >/dev/null; then
+    rm -f /tmp/config.nix.tmp
+    error "Edit produced an invalid $CONFIG_FILE; leaving it untouched. Please add '$INCLUDE_LINE' manually."
+  fi
+  sudo install -m 0644 -o root -g root /tmp/config.nix.tmp "$CONFIG_FILE"
+  rm -f /tmp/config.nix.tmp
   if ! grep -qF "$INCLUDE_LINE" "$CONFIG_FILE"; then
     error "Failed to add '$INCLUDE_LINE' to $CONFIG_FILE. The 'imports' pattern may not match. Please add it manually."
   fi

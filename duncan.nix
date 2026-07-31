@@ -13,10 +13,14 @@ in
     (import "${home-manager}/nixos")
   ];
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
-  
-  systemd.units."sys-kernel-debug.mount".enable = false;
+  nix.settings.auto-optimise-store = true;
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    options = "--delete-older-than 30d";
+  };
 
-  programs.neovim.package = unstable.neovim-unwrapped;
+  systemd.units."sys-kernel-debug.mount".enable = false;
 
   programs.zsh.enable = true;
   users.users.duncanbrown.shell = pkgs.zsh;
@@ -27,6 +31,8 @@ in
 
   services.postgresql = {
     enable = true;
+    # Single-user dev VM on localhost: trust auth is deliberate.
+    # Don't copy this anywhere with real data or multiple users.
     authentication = pkgs.lib.mkOverride 10 ''
       #type database  DBuser  auth-method
       local all       all     trust
@@ -54,7 +60,6 @@ in
       tmux
       curl
       difftastic
-      fzf
       graphviz
       hugo
       jq
@@ -72,7 +77,6 @@ in
       unzip # to install LSPs
       ghostty.terminfo
       awscli2
-      tmux
       imagemagick
       uv
       glow
@@ -102,15 +106,11 @@ in
       dotDir = "${config.home.homeDirectory}/.config/zsh";
       syntaxHighlighting.enable = true;
       initContent = ''
-        export EDITOR=nvim
         export PAGER=less
-        export XDG_CONFIG_HOME="$HOME/.config"
 
-        source "$HOME/.zsh/aliases"
-        source "$HOME/.zsh/functions"
-        source "$HOME/.zsh/base16"
-        source "$HOME/.zsh/fzf"
-        source "$HOME/.zsh/ssh"
+        for rc in aliases functions base16 fzf ssh; do
+          [ -f "$HOME/.zsh/$rc" ] && source "$HOME/.zsh/$rc"
+        done
 
         [ -f "$HOME/.fzf.zsh" ] && source "$HOME/.fzf.zsh"
 
