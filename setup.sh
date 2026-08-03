@@ -3,8 +3,6 @@ set -euo pipefail
 
 REPO_URL="https://github.com/duncanjbrown/nixos-config.git"
 REPO_DIR="$HOME/nixos-config"
-NIXOS_DIR="/etc/nixos"
-SYMLINK_NAME="duncan"
 
 info() { echo -e "\033[1;34m==>\033[0m $*"; }
 warn() { echo -e "\033[1;33m==>\033[0m $*"; }
@@ -27,52 +25,14 @@ else
   git -C "$REPO_DIR" pull --ff-only
 fi
 
-if [ ! -L "$NIXOS_DIR/$SYMLINK_NAME" ] && [ ! -d "$NIXOS_DIR/$SYMLINK_NAME" ]; then
-  info "Symlinking $REPO_DIR -> $NIXOS_DIR/$SYMLINK_NAME..."
-  sudo ln -s "$REPO_DIR" "$NIXOS_DIR/$SYMLINK_NAME"
-else
-  info "Symlink $NIXOS_DIR/$SYMLINK_NAME already exists, skipping."
-fi
-
-CONFIG_FILE="$NIXOS_DIR/configuration.nix"
-INCLUDE_LINE="./duncan/duncan.nix"
-
-if ! grep -qF "$INCLUDE_LINE" "$CONFIG_FILE" 2>/dev/null; then
-  info "Adding $INCLUDE_LINE to $CONFIG_FILE..."
-  AWK_ERR=$(sudo awk -v line="$INCLUDE_LINE" '
-    /imports[[:space:]]*=/ { saw_imports=1 }
-    saw_imports && /\[/ { print; print "      " line; saw_imports=0; next }
-    1
-  ' "$CONFIG_FILE" > /tmp/config.nix.tmp 2>&1) || error "awk failed: $AWK_ERR"
-  if [ ! -s /tmp/config.nix.tmp ]; then
-    error "awk produced empty output, aborting."
-  fi
-  if ! nix-instantiate --parse /tmp/config.nix.tmp >/dev/null; then
-    rm -f /tmp/config.nix.tmp
-    error "Edit produced an invalid $CONFIG_FILE; leaving it untouched. Please add '$INCLUDE_LINE' manually."
-  fi
-  sudo install -m 0644 -o root -g root /tmp/config.nix.tmp "$CONFIG_FILE"
-  rm -f /tmp/config.nix.tmp
-  if ! grep -qF "$INCLUDE_LINE" "$CONFIG_FILE"; then
-    error "Failed to add '$INCLUDE_LINE' to $CONFIG_FILE. The 'imports' pattern may not match. Please add it manually."
-  fi
-  warn "Please verify $CONFIG_FILE looks correct (the import was added automatically)."
-else
-  info "$INCLUDE_LINE already present in $CONFIG_FILE, skipping."
-fi
-
-info "Adding nixos-unstable channel..."
-if ! sudo nix-channel --list | grep -q "^nixos-unstable"; then
-  sudo nix-channel --add https://nixos.org/channels/nixos-unstable nixos-unstable
-else
-  info "nixos-unstable channel already added, skipping."
-fi
-
-info "Updating nix channels..."
-sudo nix-channel --update
-
-info "Rebuilding NixOS..."
-sudo nixos-rebuild switch
+info "Rebuilding NixOS from the flake..."
+# A fresh VM has no flake support in nix.conf yet; --option covers the first
+# build. Afterwards the config's own nix.settings.experimental-features
+# applies. --impure: the config reads OrbStack's machine-local
+# /etc/nixos/{incus,orbstack}.nix. --sudo: build as user, escalate to
+# activate.
+nixos-rebuild switch --flake "$REPO_DIR#orb" --impure --sudo \
+  --option experimental-features "nix-command flakes"
 
 warn "gh auth login is interactive — run it manually if you haven't already."
 warn "Log out and log back in to pick up shell and group changes."

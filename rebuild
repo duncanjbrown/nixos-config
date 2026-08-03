@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Rebuild this machine's NixOS system from the flake.
+# --impure: the config reads OrbStack's machine-local files:
+# /etc/nixos/{incus,orbstack}.nix and /opt/orbstack-guest/run/extra-certs.crt.
+# --sudo: build as your user, escalate only for activation.
+set -euo pipefail
+exec nixos-rebuild switch --flake "$(dirname "$(readlink -f "$0")")#orb" --impure --sudo "$@"

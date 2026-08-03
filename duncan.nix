@@ -1,17 +1,7 @@
-{ config, pkgs, modulesPath, ... }:
+# unstable and base16-shell come from the flake via specialArgs.
+{ config, pkgs, modulesPath, unstable, base16-shell, ... }:
 
-let
-  home-manager = builtins.fetchTarball "https://github.com/nix-community/home-manager/archive/release-25.11.tar.gz";
-  unstable = import <nixos-unstable> { config.allowUnfree = true; };
-  base16-shell = builtins.fetchTarball {
-    url = "https://github.com/chriskempson/base16-shell/archive/588691ba71b47e75793ed9edfcfaa058326a6f41.tar.gz";
-    sha256 = "0w8g0gyvahkm6zqlwy6lw9ac3hragwh3hvrnvvq2082hdyq4bksz";
-  };
-in
 {
-  imports = [
-    (import "${home-manager}/nixos")
-  ];
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   nix.settings.auto-optimise-store = true;
   nix.gc = {
