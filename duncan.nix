@@ -44,6 +44,27 @@ in
 
   virtualisation.docker.enable = true;
 
+  # opencode web UI daemon: runs as a user service so it shares the
+  # interactive CLI's auth/config/sessions under ~duncanbrown.
+  # Linger makes the user manager (and this service) start at boot.
+  users.users.duncanbrown.linger = true;
+  networking.firewall.allowedTCPPorts = [ 4096 ];
+  systemd.user.services.opencode = {
+    description = "opencode web server";
+    wantedBy = [ "default.target" ];
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+    # Include the home-manager profile so LSPs/tools installed there work.
+    # mkForce overrides the systemd module's built-in default PATH.
+    environment.PATH = pkgs.lib.mkForce "/home/duncanbrown/.nix-profile/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin";
+    serviceConfig = {
+      ExecStart = "${unstable.opencode}/bin/opencode serve --hostname 0.0.0.0 --port 4096 --print-logs";
+      WorkingDirectory = "/home/duncanbrown";
+      Restart = "on-failure";
+      RestartSec = 5;
+    };
+  };
+
   programs.nix-ld.enable = true;
   programs.nix-ld.libraries = with pkgs; [
     icu
