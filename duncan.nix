@@ -34,26 +34,11 @@
 
   virtualisation.docker.enable = true;
 
-  # opencode web UI daemon: runs as a user service so it shares the
-  # interactive CLI's auth/config/sessions under ~duncanbrown.
-  # Linger makes the user manager (and this service) start at boot.
+  # The opencode web UI daemon runs as a home-manager user service (defined
+  # in the home-manager block below); these are the system-level bits it
+  # needs. Linger makes the user manager (and the service) start at boot.
   users.users.duncanbrown.linger = true;
   networking.firewall.allowedTCPPorts = [ 4096 ];
-  systemd.user.services.opencode = {
-    description = "opencode web server";
-    wantedBy = [ "default.target" ];
-    after = [ "network-online.target" ];
-    wants = [ "network-online.target" ];
-    # Include the home-manager profile so LSPs/tools installed there work.
-    # mkForce overrides the systemd module's built-in default PATH.
-    environment.PATH = pkgs.lib.mkForce "/home/duncanbrown/.nix-profile/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin";
-    serviceConfig = {
-      ExecStart = "${unstable.opencode}/bin/opencode serve --hostname 0.0.0.0 --port 4096 --print-logs";
-      WorkingDirectory = "/home/duncanbrown";
-      Restart = "on-failure";
-      RestartSec = 5;
-    };
-  };
 
   programs.nix-ld.enable = true;
   programs.nix-ld.libraries = with pkgs; [
@@ -104,6 +89,29 @@
     ];
 
     home.homeDirectory = "/home/duncanbrown";
+
+    # opencode web UI daemon: runs as a user service so it shares the
+    # interactive CLI's auth/config/sessions under ~. Started at boot via
+    # linger (set in the system config above).
+    systemd.user.services.opencode = {
+      Unit = {
+        Description = "opencode web server";
+        After = [ "network-online.target" ];
+        Wants = [ "network-online.target" ];
+      };
+      Service = {
+        ExecStart = "${unstable.opencode}/bin/opencode serve --hostname 0.0.0.0 --port 4096 --print-logs";
+        WorkingDirectory = "%h";
+        Restart = "on-failure";
+        RestartSec = 5;
+        # The user manager's default PATH knows nothing about nix profiles;
+        # include the home-manager profile so LSPs/tools installed there work.
+        Environment = [
+          "PATH=${config.home.profileDirectory}/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin"
+        ];
+      };
+      Install.WantedBy = [ "default.target" ];
+    };
 
     # Satisfy fzf.vim
     home.file.".fzf".source = "${pkgs.fzf}/share/vim-plugins/fzf";
