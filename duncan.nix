@@ -2,6 +2,8 @@
 { config, pkgs, modulesPath, unstable, base16-shell, ... }:
 
 {
+  imports = [ ./opencode-widget ];
+
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   nix.settings.auto-optimise-store = true;
   nix.gc = {
@@ -34,11 +36,29 @@
 
   virtualisation.docker.enable = true;
 
+  # Serves ~/projects at http://<hostname>.orb.local/ (one path per app,
+  # e.g. /planet-wars/). Runs as duncanbrown so it can read the 700-mode
+  # home directory; this is a single-user dev VM, so that's fine.
+  services.nginx = {
+    enable = true;
+    user = "duncanbrown";
+    virtualHosts."${config.networking.hostName}.orb.local" = {
+      default = true;
+      root = "/home/duncanbrown/projects";
+      extraConfig = ''
+        autoindex on;
+      '';
+    };
+  };
+  # The nginx unit hardening hides /home by default (ProtectHome=true);
+  # relax it to read-only so nginx can serve ~/projects.
+  systemd.services.nginx.serviceConfig.ProtectHome = "read-only";
+
   # The opencode web UI daemon runs as a home-manager user service (defined
   # in the home-manager block below); these are the system-level bits it
   # needs. Linger makes the user manager (and the service) start at boot.
   users.users.duncanbrown.linger = true;
-  networking.firewall.allowedTCPPorts = [ 4096 ];
+  networking.firewall.allowedTCPPorts = [ 80 4096 ];
 
   programs.nix-ld.enable = true;
   programs.nix-ld.libraries = with pkgs; [
@@ -86,6 +106,7 @@
       duc
       zip
       adr-tools
+      rich-cli
     ];
 
     home.homeDirectory = "/home/duncanbrown";
