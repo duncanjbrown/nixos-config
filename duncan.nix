@@ -34,6 +34,21 @@
     settings.port = 5434;
   };
 
+  services.neo4j = {
+    enable = true;
+    # Single-user dev VM on localhost — simple auth, same principle as pg.
+    # Don't copy this anywhere with real data or multiple users.
+    defaultListenAddress = "0.0.0.0";
+    https.enable = false;
+    bolt = {
+      listenAddress = "0.0.0.0:7687";
+      advertisedAddress = "work.orb.local:7687";
+      tlsLevel = "DISABLED";
+    };
+    http.listenAddress = "0.0.0.0:7474";
+    http.advertisedAddress = "work.orb.local:7474";
+  };
+
   virtualisation.docker.enable = true;
 
   # Serves ~/projects at http://<hostname>.orb.local/ (one path per app,
@@ -58,7 +73,7 @@
   # in the home-manager block below); these are the system-level bits it
   # needs. Linger makes the user manager (and the service) start at boot.
   users.users.duncanbrown.linger = true;
-  networking.firewall.allowedTCPPorts = [ 80 4096 ];
+  networking.firewall.allowedTCPPorts = [ 80 4096 7474 7687 ];
 
   programs.nix-ld.enable = true;
   programs.nix-ld.libraries = with pkgs; [
@@ -107,6 +122,7 @@
       zip
       adr-tools
       rich-cli
+      neo4j  # provides cypher-shell for loading graph data
     ];
 
     home.homeDirectory = "/home/duncanbrown";
