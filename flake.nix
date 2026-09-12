@@ -29,8 +29,8 @@
         inherit system;
         specialArgs = { inherit unstable base16-shell; };
         modules = [
+          ./orbstack.nix
           ./configuration.nix
-          ./duncan.nix
           home-manager.nixosModules.home-manager
         ];
       };

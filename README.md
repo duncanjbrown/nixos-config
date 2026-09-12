@@ -6,6 +6,12 @@ read live at build time — `/etc/nixos/orbstack.nix`, `/etc/nixos/incus.nix`
 (which carries the machine's CA certs) — so rebuilds need `--impure`; the
 `rebuild` script wraps that. Nothing machine-local is committed to this repo.
 
+- `flake.nix` — inputs; one `orb` system shared by every machine
+- `orbstack.nix` — platform glue: LXC base, OrbStack files, networking
+- `configuration.nix` — user account, nix settings, services (docker, postgres, neo4j, nginx)
+- `home.nix` — home-manager: packages, zsh, neovim, git, opencode service
+- `opencode-widget/` — optional chat widget injected into nginx-served pages
+
 1. Start a VM in OrbStack
 1. `ssh orb` from host
 1. Clone and run the setup script (do **not** run with `sudo` — it handles that internally):
