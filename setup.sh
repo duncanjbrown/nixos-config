@@ -28,11 +28,8 @@ fi
 info "Rebuilding NixOS from the flake..."
 # A fresh VM has no flake support in nix.conf yet; --option covers the first
 # build. Afterwards the config's own nix.settings.experimental-features
-# applies. --impure: the config reads OrbStack's machine-local
-# /etc/nixos/{incus,orbstack}.nix. --sudo: build as user, escalate to
-# activate.
-nixos-rebuild switch --flake "$REPO_DIR#orb" --impure --sudo \
-  --option experimental-features "nix-command flakes"
+# applies.
+"$REPO_DIR/rebuild" --option experimental-features "nix-command flakes"
 
 warn "gh auth login is interactive — run it manually if you haven't already."
 warn "Log out and log back in to pick up shell and group changes."

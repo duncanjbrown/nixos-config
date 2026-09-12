@@ -1,5 +1,5 @@
 # unstable and base16-shell come from the flake via specialArgs.
-{ config, pkgs, modulesPath, unstable, base16-shell, ... }:
+{ config, lib, pkgs, unstable, base16-shell, ... }:
 
 {
   imports = [ ./opencode-widget ];
@@ -12,20 +12,18 @@
     options = "--delete-older-than 30d";
   };
 
+  # LXC containers can't mount debugfs; without this the unit fails at boot.
   systemd.units."sys-kernel-debug.mount".enable = false;
 
   programs.zsh.enable = true;
-  users.users.duncanbrown.shell = pkgs.zsh;
+  users.defaultUserShell = pkgs.zsh;
   users.users.duncanbrown.extraGroups = [ "docker" ];
-  nixpkgs.config.permittedInsecurePackages = [
-    "docker-28.5.2"
-  ];
 
   services.postgresql = {
     enable = true;
     # Single-user dev VM on localhost: trust auth is deliberate.
     # Don't copy this anywhere with real data or multiple users.
-    authentication = pkgs.lib.mkOverride 10 ''
+    authentication = lib.mkForce ''
       #type database  DBuser  auth-method
       local all       all     trust
       host  all       all     127.0.0.1/32   trust
@@ -49,7 +47,11 @@
     http.advertisedAddress = "work.orb.local:7474";
   };
 
-  virtualisation.docker.enable = true;
+  virtualisation.docker = {
+    enable = true;
+    # 25.11 defaults to the unmaintained docker 28.
+    package = pkgs.docker_29;
+  };
 
   # Serves ~/projects at http://<hostname>.orb.local/ (one path per app,
   # e.g. /planet-wars/). Runs as duncanbrown so it can read the 700-mode
@@ -80,13 +82,13 @@
     icu
   ];
 
+  home-manager.useGlobalPkgs = true;
+  home-manager.useUserPackages = true;
   home-manager.users.duncanbrown = { pkgs, lib, config, ... }: {
     home.stateVersion = "25.11";  # match your nixos version
-    nixpkgs.config.allowUnfreePredicate = _: true;
 
     home.packages = with pkgs; [
       ripgrep
-      fzf
       rcm
       tmux
       curl
@@ -97,9 +99,7 @@
       tig
       wget
       tree
-      oh-my-zsh
       silver-searcher
-      gh
       base16-universal-manager
       gnumake
       nodejs # to install LSPs
@@ -122,11 +122,8 @@
       zip
       adr-tools
       rich-cli
-      neo4j  # provides cypher-shell for loading graph data
       unstable.claude-code
     ];
-
-    home.homeDirectory = "/home/duncanbrown";
 
     # opencode web UI daemon: runs as a user service so it shares the
     # interactive CLI's auth/config/sessions under ~. Started at boot via
@@ -158,6 +155,9 @@
     home.file.".config/base16-shell".source = base16-shell;
     home.file.".base16_theme".source = "${base16-shell}/scripts/base16-oceanicnext.sh";
 
+    # Keybindings and completion; ~/.zsh/fzf (dotfiles) adds colours and ^P.
+    programs.fzf.enable = true;
+
     programs.zsh = {
       enable = true;
       dotDir = "${config.home.homeDirectory}/.config/zsh";
@@ -169,8 +169,6 @@
           [ -f "$HOME/.zsh/$rc" ] && source "$HOME/.zsh/$rc"
         done
 
-        [ -f "$HOME/.fzf.zsh" ] && source "$HOME/.fzf.zsh"
-
         eval "$(${pkgs.fnm}/bin/fnm env --use-on-cd --shell zsh)"
 
         function precmd () {
@@ -179,7 +177,7 @@
       '';
       oh-my-zsh = {
         enable = true;
-        plugins = [ "git" "fzf" ];
+        plugins = [ "git" ];
         custom = "${config.home.homeDirectory}/.dotfiles/oh-my-zsh";
         theme = "gallois-docker";
       };
@@ -196,11 +194,13 @@
       settings = {
         user.name = "Duncan Brown";
         user.email = "duncan@duncanjbrown.com";
-        credential."https://github.com".helper = [
-          ""
-          "!${pkgs.gh}/bin/gh auth git-credential"
-        ];
       };
+    };
+
+    programs.gh = {
+      enable = true;
+      gitCredentialHelper.enable = true;
+      settings.aliases.co = "pr checkout";
     };
 
     home.activation.dotfiles = lib.hm.dag.entryAfter ["writeBoundary"] ''
