@@ -31,6 +31,7 @@
     createHome = true;
     home = "/home/duncanbrown";
     homeMode = "700";
+    useDefaultShell = true;
 
     # Start the user manager at boot so the opencode user service (home.nix)
     # runs without a login.
