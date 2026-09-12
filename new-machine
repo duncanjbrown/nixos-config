@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# Create a new OrbStack NixOS machine and bring it up to this repo's config,
+# end to end: create the VM, clone this repo, run setup.sh (the first
+# nixos-rebuild), and log the machine into GitHub with the caller's gh token.
+#
+# Run it from macOS, or from any existing OrbStack machine (orbctl proxies to
+# the host either way). Extra arguments are passed to `orbctl create`.
+#
+#   ./new-machine NAME [orbctl create flags...]
+#   ./new-machine play
+#   ./new-machine build --cpus 4 --memory 8G
+#
+# The README's "log out and back in" step isn't needed here: every
+# `orb -m NAME` starts a fresh session that already sees the new shell and
+# groups.
+set -euo pipefail
+
+REPO_URL="https://github.com/duncanjbrown/nixos-config.git"
+# flake.nix pins nixpkgs 25.11 and aarch64-linux; keep these in step with it.
+DISTRO="nixos:25.11"
+ARCH="arm64"
+
+info() { echo -e "\033[1;34m==>\033[0m $*"; }
+warn() { echo -e "\033[1;33m==>\033[0m $*"; }
+error() { echo -e "\033[1;31m==>\033[0m $*" >&2; exit 1; }
+
+[ $# -ge 1 ] || error "usage: $0 NAME [orbctl create flags...]"
+name=$1; shift
+
+command -v orbctl >/dev/null || error "orbctl not found; is OrbStack installed?"
+
+if orbctl list 2>/dev/null | awk '{ print $1 }' | grep -qx "$name"; then
+  error "machine '$name' already exists (orbctl delete $name to start over)"
+fi
+
+# New machines build from what's on GitHub, not from this checkout. Refuse
+# to continue if the two differ, since the result would silently lack the
+# local changes. FORCE=1 skips the check.
+here=$(cd "$(dirname "$0")" && pwd)
+if [ -z "${FORCE:-}" ] && git -C "$here" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git -C "$here" fetch -q origin 2>/dev/null || warn "Couldn't fetch origin; comparing against the last known state."
+  unpushed=$(git -C "$here" log --oneline '@{upstream}..HEAD' 2>/dev/null || true)
+  dirty=$(git -C "$here" status --porcelain --untracked-files=no)
+  if [ -n "$unpushed" ] || [ -n "$dirty" ]; then
+    [ -n "$unpushed" ] && { warn "Unpushed commits:"; echo "$unpushed"; }
+    [ -n "$dirty" ] && { warn "Uncommitted changes:"; echo "$dirty"; }
+    error "This checkout differs from $REPO_URL, which is what '$name' would be built from. Push first, or set FORCE=1 to build from origin anyway."
+  fi
+fi
+
+run() { orbctl run -m "$name" "$@"; }
+
+info "Creating $DISTRO ($ARCH) machine '$name'..."
+orbctl create -a "$ARCH" "$@" "$DISTRO" "$name"
+
+info "Cloning $REPO_URL and running setup.sh (the first build takes a while)..."
+# A fresh machine has no git; nix-shell provides it for the clone and for
+# setup.sh, which then pulls the repo and rebuilds the system from the flake.
+run nix-shell -p git --run \
+  'git clone '"$REPO_URL"' ~/nixos-config && ~/nixos-config/setup.sh'
+
+if command -v gh >/dev/null && token=$(gh auth token 2>/dev/null) && [ -n "$token" ]; then
+  info "Logging '$name' into GitHub with this host's gh token..."
+  # home-manager (programs.gh) makes ~/.config/gh/config.yml a read-only
+  # store symlink, and `gh auth login` refuses to run if it can't write
+  # config.yml. So log in against a scratch config dir and keep just the
+  # hosts.yml it produces, which is the only file the login creates.
+  printf '%s' "$token" | run sh -c '
+    d=$(mktemp -d) &&
+    GH_CONFIG_DIR=$d gh auth login --with-token &&
+    install -m 600 "$d/hosts.yml" ~/.config/gh/hosts.yml &&
+    rm -rf "$d"'
+else
+  warn "No gh login found here; run it on the machine: orb -m $name gh auth login"
+fi
+
+info "Done. Connect with: orb -m $name   (or: ssh $name@orb)"
