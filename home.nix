@@ -8,6 +8,7 @@
   home.stateVersion = "25.11";  # match your nixos version
 
   home.packages = with pkgs; [
+    highlight
     ripgrep
     rcm
     tmux
