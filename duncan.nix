@@ -123,6 +123,7 @@
       adr-tools
       rich-cli
       neo4j  # provides cypher-shell for loading graph data
+      unstable.claude-code
     ];
 
     home.homeDirectory = "/home/duncanbrown";
